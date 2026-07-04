@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Zap — Your money, charged up</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0712;
+    --bg-elev:#0D0918;
+    --surface:#160F26;
+    --surface-2:#1E1636;
+    --border:#2C2247;
+    --text:#F3F0FA;
+    --text-dim:#A79FC4;
+    --text-faint:#665C87;
+    --violet:#C24BFF;
+    --violet-dim:rgba(194,75,255,.16);
+    --cyan:#3EF1DE;
+    --cyan-dim:rgba(62,241,222,.16);
+    --lime:#C6FF4D;
+    --lime-dim:rgba(198,255,77,.16);
+    --hot:#FF4FA0;
+    --hot-dim:rgba(255,79,160,.16);
+    --gain:#41E39A;
+    --radius:18px;
+    --focus:#3EF1DE;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;}
+  .display{font-family:'Sora',sans-serif;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  button,select,input{font-family:inherit;}
+  button{cursor:pointer;border:none;background:none;color:inherit;}
+  :focus-visible{outline:2.5px solid var(--focus);outline-offset:2px;border-radius:6px;}
+
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+  .skip-link{position:absolute;left:8px;top:-48px;background:var(--violet);color:#0A0712;padding:10px 16px;border-radius:10px;font-weight:700;font-size:13px;z-index:200;transition:top .15s;}
+  .skip-link:focus{top:8px;}
+
+  @media (prefers-reduced-motion: reduce){ *{animation-duration:.001s !important; transition-duration:.001s !important;} }
+  html.reduce-motion *{animation:none !important; transition:none !important;}
+  html.high-contrast{--bg:#000; --surface:#0A0A0A; --surface-2:#151515; --border:#3A3A3A; --text-dim:#D7D7D7;}
+  html.fs-lg{font-size:18px;}
+  html.fs-xl{font-size:20px;}
+
+  #phone{position:relative;max-width:430px;min-height:100vh;margin:0 auto;
+    background:
+      radial-gradient(circle at 85% -5%, rgba(194,75,255,.16), transparent 40%),
+      radial-gradient(circle at 0% 15%, rgba(62,241,222,.10), transparent 35%),
+      var(--bg);
+    display:flex;flex-direction:column;overflow-x:hidden;}
+  .statusbar{display:flex;justify-content:space-between;align-items:center;padding:14px 20px 2px;font-size:.75rem;color:var(--text-dim);font-family:'JetBrains Mono',monospace;}
+
+  header.topbar{padding:14px 20px 6px;}
+  .greet-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;}
+  .greet h1{margin:0;font-size:1.35rem;font-weight:700;}
+  .greet p{margin:2px 0 0;color:var(--text-dim);font-size:.82rem;}
+  .icon-btn{width:40px;height:40px;min-width:40px;min-height:40px;border-radius:13px;background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--text-dim);border:1px solid var(--border);}
+  .top-actions{display:flex;gap:8px;}
+  .bolt-badge{position:relative;width:40px;height:40px;border-radius:13px;background:linear-gradient(150deg,var(--violet),var(--cyan));display:flex;align-items:center;justify-content:center;color:#0A0712;font-weight:800;}
+  .notif-dot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--hot);border:2px solid var(--bg);}
+
+  /* XP bar */
+  .xp-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px;margin:0 20px 16px;}
+  .xp-level{width:38px;height:38px;border-radius:11px;background:var(--violet-dim);color:var(--violet);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem;flex:0 0 auto;}
+  .xp-body{flex:1;}
+  .xp-top{display:flex;justify-content:space-between;font-size:.72rem;color:var(--text-dim);margin-bottom:5px;}
+  .xp-track{height:7px;border-radius:100px;background:var(--surface-2);overflow:hidden;}
+  .xp-fill{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--violet),var(--cyan));}
+
+  main{flex:1;padding:0 0 32px;}
+  section{padding:0 20px;margin-bottom:22px;}
+  .section-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;}
+  .section-head h2{margin:0;font-size:1rem;font-weight:700;}
+  .link-btn{color:var(--cyan);font-size:.8rem;font-weight:700;padding:6px;min-height:32px;}
+
+  /* Card carousel */
+  .carousel-wrap{position:relative;}
+  .carousel{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 20px 10px;margin:0 -20px;scrollbar-width:none;list-style:none;}
+  .carousel::-webkit-scrollbar{display:none;}
+  .bank-card{scroll-snap-align:start;flex:0 0 78%;min-width:260px;border-radius:20px;padding:18px;position:relative;overflow:hidden;color:#F8F6FF;isolation:isolate;}
+  .bank-card::before{content:'';position:absolute;inset:0;background:var(--card-grad);z-index:-2;}
+  .bank-card::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.14),transparent 55%);z-index:-1;}
+  .bank-card .top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px;}
+  .bank-mark{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.72rem;letter-spacing:.5px;}
+  .bank-name{font-size:.72rem;font-weight:700;opacity:.9;text-transform:uppercase;letter-spacing:.6px;margin-top:2px;}
+  .primary-pill{font-size:.62rem;font-weight:800;background:rgba(255,255,255,.22);padding:3px 8px;border-radius:100px;letter-spacing:.4px;}
+  .bank-balance{font-size:1.5rem;font-weight:700;font-family:'JetBrains Mono',monospace;margin-bottom:4px;}
+  .bank-number{font-size:.72rem;opacity:.75;font-family:'JetBrains Mono',monospace;}
+  .carousel-controls{display:flex;justify-content:center;align-items:center;gap:14px;margin-top:6px;}
+  .dots{display:flex;gap:6px;}
+  .dot-ind{width:6px;height:6px;border-radius:50%;background:var(--border);}
+  .dot-ind.on{background:var(--cyan);width:16px;border-radius:100px;}
+  .nav-arrow{width:34px;height:34px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text-dim);}
+
+  /* Quick actions */
+  .quick-row{display:flex;justify-content:space-between;padding:0 20px;margin-bottom:22px;}
+  .qa{display:flex;flex-direction:column;align-items:center;gap:7px;flex:1;min-height:44px;}
+  .qa-ic{width:50px;height:50px;border-radius:16px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--cyan);}
+  .qa span{font-size:.72rem;color:var(--text-dim);font-weight:600;}
+
+  /* Insights */
+  .insight-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+  .insight-total{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px;}
+  .insight-total .val{font-size:1.6rem;font-weight:700;font-family:'JetBrains Mono',monospace;}
+  .insight-total .lbl{font-size:.72rem;color:var(--text-faint);}
+  .seg-mini{display:flex;background:var(--surface-2);border-radius:10px;padding:3px;}
+  .seg-mini button{padding:6px 10px;border-radius:8px;font-size:.68rem;font-weight:700;color:var(--text-dim);min-height:30px;}
+  .seg-mini button.on{background:var(--violet-dim);color:var(--violet);}
+
+  .chart-row{display:flex;align-items:flex-end;justify-content:space-between;height:130px;gap:8px;margin-bottom:6px;}
+  .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:6px;}
+  .bar-amt{font-size:.6rem;color:var(--text-faint);font-family:'JetBrains Mono',monospace;}
+  .bar{width:100%;max-width:26px;border-radius:8px 8px 3px 3px;background:linear-gradient(180deg,rgba(194,75,255,.55),rgba(194,75,255,.22));transition:height .5s cubic-bezier(.2,.8,.2,1);}
+  .bar.hot{background:linear-gradient(180deg,var(--hot),rgba(255,79,160,.35));box-shadow:0 0 14px rgba(255,79,160,.35);}
+  .bar-cat{font-size:.62rem;color:var(--text-dim);text-align:center;line-height:1.15;}
+  .insight-callout{display:flex;gap:10px;align-items:flex-start;background:var(--hot-dim);border:1px solid rgba(255,79,160,.3);border-radius:12px;padding:10px 12px;margin-top:10px;font-size:.78rem;color:var(--text);}
+  .insight-callout svg{flex:0 0 auto;margin-top:1px;}
+
+  /* Round-up */
+  .roundup-card{background:linear-gradient(155deg,var(--surface),var(--surface-2));border:1px solid var(--border);border-radius:var(--radius);padding:18px;position:relative;overflow:hidden;}
+  .roundup-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+  .roundup-head h3{margin:0 0 4px;font-size:1rem;}
+  .roundup-head p{margin:0;font-size:.78rem;color:var(--text-dim);max-width:80%;}
+  .switch-btn{width:50px;height:28px;border-radius:100px;background:var(--surface-2);border:1px solid var(--border);position:relative;flex:0 0 auto;min-width:50px;}
+  .switch-btn::after{content:'';position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;background:var(--text-faint);transition:left .18s ease, background .18s ease;}
+  .switch-btn[aria-checked="true"]{background:var(--lime-dim);border-color:var(--lime);}
+  .switch-btn[aria-checked="true"]::after{left:26px;background:var(--lime);box-shadow:0 0 10px rgba(198,255,77,.6);}
+
+  .streak-row{display:flex;gap:10px;margin:14px 0;}
+  .streak-chip{flex:1;background:var(--surface-2);border-radius:12px;padding:10px;text-align:center;}
+  .streak-chip .n{font-size:1.05rem;font-weight:800;font-family:'JetBrains Mono',monospace;}
+  .streak-chip .l{font-size:.66rem;color:var(--text-faint);margin-top:2px;}
+
+  .charge-meter{margin:14px 0 12px;}
+  .charge-top{display:flex;justify-content:space-between;font-size:.72rem;color:var(--text-dim);margin-bottom:6px;}
+  .charge-track{height:14px;border-radius:100px;background:var(--surface-2);border:1px solid var(--border);overflow:hidden;position:relative;}
+  .charge-fill{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--lime),var(--cyan));position:relative;}
+  .charge-fill::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.18) 0 8px,transparent 8px 16px);}
+
+  .multiplier-row{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
+  .multiplier-row .lbl{font-size:.78rem;font-weight:600;color:var(--text-dim);}
+  .stepper{display:flex;background:var(--surface-2);border-radius:10px;padding:3px;gap:2px;}
+  .stepper button{padding:7px 12px;border-radius:8px;font-size:.75rem;font-weight:800;color:var(--text-dim);min-height:32px;}
+  .stepper button.on{background:linear-gradient(120deg,var(--violet),var(--cyan));color:#0A0712;}
+
+  /* Badges */
+  .badge-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;margin:0 -20px;padding-left:20px;padding-right:20px;scrollbar-width:none;}
+  .badge-row::-webkit-scrollbar{display:none;}
+  .badge{flex:0 0 auto;width:82px;text-align:center;}
+  .badge-ic{width:56px;height:56px;border-radius:16px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin:0 auto 6px;}
+  .badge.locked .badge-ic{opacity:.35;}
+  .badge span{font-size:.62rem;color:var(--text-dim);line-height:1.2;display:block;}
+
+  /* Transactions */
+  .tx-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);}
+  .tx-row:last-child{border-bottom:none;}
+  .tx-ic{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex:0 0 auto;}
+  .tx-info{flex:1;min-width:0;}
+  .tx-info .t{font-weight:600;font-size:.85rem;}
+  .tx-info .s{font-size:.7rem;color:var(--text-faint);}
+  .tx-amt{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:.85rem;}
+  .tx-amt.neg{color:var(--text);}
+  .tx-amt.pos{color:var(--gain);}
+
+  /* Bottom nav */
+  nav.bottomnav{position:fixed;left:0;right:0;bottom:0;max-width:430px;margin:0 auto;background:rgba(13,9,24,.92);backdrop-filter:blur(14px);border-top:1px solid var(--border);display:flex;padding:8px 6px calc(8px + env(safe-area-inset-bottom,0px));z-index:40;}
+  .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;color:var(--text-faint);font-size:.62rem;font-weight:700;min-height:48px;}
+  .nav-btn[aria-current="page"]{color:var(--cyan);}
+  .nav-btn svg{width:20px;height:20px;}
+
+  .screen{display:none;}
+  .screen.active{display:block;}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;}
+  .toggle-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);}
+  .toggle-row:last-child{border-bottom:none;}
+  .toggle-row .t{font-size:.85rem;font-weight:600;}
+  .toggle-row .s{font-size:.7rem;color:var(--text-faint);margin-top:2px;}
+  .fs-row{display:flex;gap:8px;}
+  .fs-row button{flex:1;padding:10px;border-radius:10px;background:var(--surface-2);border:1px solid var(--border);font-weight:700;font-size:.8rem;min-height:44px;}
+  .fs-row button.on{border-color:var(--cyan);color:var(--cyan);}
+
+  .toast{position:fixed;top:16px;left:50%;transform:translateX(-50%) translateY(-30px);background:var(--surface);border:1px solid var(--lime);color:var(--lime);padding:11px 18px;border-radius:12px;font-size:.82rem;font-weight:700;z-index:80;opacity:0;transition:all .3s;}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+</style>
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<div id="phone">
+
+  <div class="statusbar" aria-hidden="true">
+    <span>9:41</span>
+    <span>⚡ 100%</span>
+  </div>
+
+  <header class="topbar">
+    <div class="greet-row">
+      <div class="greet">
+        <h1>Hey Ada <span aria-hidden="true">⚡</span></h1>
+        <p>Wednesday, July 4 · All accounts synced</p>
+      </div>
+      <div class="top-actions">
+        <button class="icon-btn" aria-label="Notifications, 1 unread">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        </button>
+        <div class="bolt-badge" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"/></svg>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="xp-card" role="group" aria-label="Level progress: Level 4, 680 of 1000 XP to Level 5">
+    <div class="xp-level" aria-hidden="true">Lv4</div>
+    <div class="xp-body">
+      <div class="xp-top"><span>Saver rank</span><span class="mono">680 / 1000 XP</span></div>
+      <div class="xp-track"><div class="xp-fill" style="width:68%"></div></div>
+    </div>
+  </div>
+
+  <!-- bottom nav placed after markup for tab order but rendered fixed; screens below -->
+  <main id="main-content">
+
+    <!-- ================= HOME ================= -->
+    <div class="screen active" id="screen-home">
+
+      <section aria-labelledby="cards-heading">
+        <div class="section-head">
+          <h2 id="cards-heading">Your accounts</h2>
+          <button class="link-btn" id="hideBalanceBtn" aria-pressed="false" onclick="toggleHideBalance()">Hide balances</button>
+        </div>
+        <div class="carousel-wrap">
+          <ul class="carousel" id="carousel" role="list" aria-label="Linked bank accounts, swipe or use arrows to browse" tabindex="0">
+            <!-- cards injected by JS -->
+          </ul>
+          <div class="carousel-controls">
+            <button class="nav-arrow" aria-label="Previous account card" onclick="scrollCarousel(-1)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <div class="dots" id="carouselDots" role="tablist" aria-label="Account card position"></div>
+            <button class="nav-arrow" aria-label="Next account card" onclick="scrollCarousel(1)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <div class="quick-row" role="group" aria-label="Quick actions">
+        <button class="qa"><div class="qa-ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></div><span>Send</span></button>
+        <button class="qa"><div class="qa-ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></div><span>Add money</span></button>
+        <button class="qa"><div class="qa-ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6M12 16v6M4.9 4.9l4.2 4.2M14.9 14.9l4.2 4.2M2 12h6M16 12h6M4.9 19.1l4.2-4.2M14.9 9.1l4.2-4.2"/></svg></div><span>Round-Up</span></button>
+        <button class="qa"><div class="qa-ic"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></div><span>More</span></button>
+      </div>
+
+      <section aria-labelledby="insights-heading">
+        <div class="section-head">
+          <h2 id="insights-heading">Spending insights</h2>
+          <div class="seg-mini" role="group" aria-label="Time range">
+            <button class="on">This week</button>
+            <button>Last week</button>
+          </div>
+        </div>
+        <div class="insight-card">
+          <div class="insight-total">
+            <div><div class="val mono">₦42,600</div><div class="lbl">spent across 6 categories</div></div>
+          </div>
+
+          <div class="chart-row" id="chartRow" aria-hidden="true"></div>
+
+          <table class="sr-only">
+            <caption>Spending by category this week</caption>
+            <thead><tr><th scope="col">Category</th><th scope="col">Amount</th></tr></thead>
+            <tbody id="chartTableBody"></tbody>
+          </table>
+
+          <div class="insight-callout">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--hot)" stroke-width="2.2"><path d="M12 9v4M12 17h.01M10.3 3.9L2.9 17a2 2 0 001.7 3h14.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>
+            <span><strong>Transport</strong> is your top spend this week — up 32% from last week, mostly late-night rides.</span>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="roundup-heading">
+        <div class="section-head"><h2 id="roundup-heading">Save Round-Up</h2></div>
+        <div class="roundup-card">
+          <div class="roundup-head">
+            <div>
+              <h3>Round-up autosave</h3>
+              <p>We round up every purchase to the next ₦50 and stash the change automatically.</p>
+            </div>
+            <button class="switch-btn" role="switch" aria-checked="true" id="roundupSwitch" aria-label="Save Round-Up automation" onclick="toggleRoundup()"></button>
+          </div>
+
+          <div class="streak-row" role="group" aria-label="Round-up stats">
+            <div class="streak-chip"><div class="n">🔥 14</div><div class="l">day streak</div></div>
+            <div class="streak-chip"><div class="n">₦4,235</div><div class="l">saved this month</div></div>
+            <div class="streak-chip"><div class="n">₦186</div><div class="l">avg round-up</div></div>
+          </div>
+
+          <div class="charge-meter">
+            <div class="charge-top"><span>Monthly goal</span><span class="mono">₦4,235 / ₦10,000</span></div>
+            <div class="charge-track" role="progressbar" aria-valuenow="42" aria-valuemin="0" aria-valuemax="100" aria-label="Round-up savings goal progress, 42 percent">
+              <div class="charge-fill" style="width:42%"></div>
+            </div>
+          </div>
+
+          <div class="multiplier-row">
+            <span class="lbl">Boost multiplier</span>
+            <div class="stepper" role="group" aria-label="Round-up multiplier">
+              <button class="on" aria-pressed="true" onclick="setMultiplier(this,1)">1x</button>
+              <button aria-pressed="false" onclick="setMultiplier(this,2)">2x</button>
+              <button aria-pressed="false" onclick="setMultiplier(this,3)">3x</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="badges-heading">
+        <div class="section-head"><h2 id="badges-heading">Badges</h2></div>
+        <div class="badge-row" role="list" aria-label="Earned and locked badges">
+          <div class="badge" role="listitem"><div class="badge-ic">🔥</div><span>Streak Starter</span></div>
+          <div class="badge" role="listitem"><div class="badge-ic">🪙</div><span>Round-Up Rookie</span></div>
+          <div class="badge" role="listitem"><div class="badge-ic">🏦</div><span>Multi-Bank Master</span></div>
+          <div class="badge locked" role="listitem"><div class="badge-ic">🎯</div><span>Goal Getter (locked)</span></div>
+          <div class="badge locked" role="listitem"><div class="badge-ic">💎</div><span>Diamond Saver (locked)</span></div>
+        </div>
+      </section>
+
+      <section aria-labelledby="tx-heading">
+        <div class="section-head"><h2 id="tx-heading">Recent activity</h2><button class="link-btn">See all</button></div>
+        <div class="card" id="txList"></div>
+      </section>
+    </div>
+
+    <!-- ================= INSIGHTS TAB ================= -->
+    <div class="screen" id="screen-insights">
+      <section>
+        <h2 style="margin:16px 0;">Full spending breakdown</h2>
+        <div class="insight-card">
+          <div class="insight-total"><div><div class="val mono">₦42,600</div><div class="lbl">this week vs ₦32,300 last week</div></div></div>
+          <div class="chart-row" id="chartRow2" aria-hidden="true"></div>
+          <table class="sr-only"><caption>Spending by category</caption><tbody id="chartTableBody2"></tbody></table>
+        </div>
+        <p style="font-size:.8rem;color:var(--text-dim);margin-top:14px;">Insights update instantly as new transactions come in from all linked accounts.</p>
+      </section>
+    </div>
+
+    <!-- ================= CARDS TAB ================= -->
+    <div class="screen" id="screen-cards">
+      <section>
+        <h2 style="margin:16px 0;">Linked accounts</h2>
+        <div id="cardListFull"></div>
+      </section>
+    </div>
+
+    <!-- ================= PROFILE TAB ================= -->
+    <div class="screen" id="screen-profile">
+      <section>
+        <h2 style="margin:16px 0;">Accessibility &amp; display</h2>
+        <div class="card">
+          <div class="toggle-row"><div><div class="t">Text size</div><div class="s">Increase reading size across the app</div></div></div>
+          <div class="fs-row" role="group" aria-label="Text size" style="margin-top:6px;">
+            <button class="on" onclick="setFontSize('base',this)">A</button>
+            <button onclick="setFontSize('lg',this)">A+</button>
+            <button onclick="setFontSize('xl',this)">A++</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="toggle-row">
+            <div><div class="t">High contrast mode</div><div class="s">Pure black background, higher contrast text</div></div>
+            <button class="switch-btn" role="switch" aria-checked="false" aria-label="High contrast mode" onclick="toggleClassSwitch(this,'high-contrast')"></button>
+          </div>
+          <div class="toggle-row">
+            <div><div class="t">Reduce motion</div><div class="s">Turns off animations and transitions</div></div>
+            <button class="switch-btn" role="switch" aria-checked="false" aria-label="Reduce motion" onclick="toggleClassSwitch(this,'reduce-motion')"></button>
+          </div>
+          <div class="toggle-row">
+            <div><div class="t">Screen reader hints</div><div class="s">Extra spoken context on charts and cards</div></div>
+            <button class="switch-btn" role="switch" aria-checked="true"></button>
+          </div>
+        </div>
+        <h2 style="margin:20px 0 16px;">Account</h2>
+        <div class="card">
+          <div class="toggle-row"><div class="t">Ada Okafor</div></div>
+          <div class="toggle-row"><div class="t">ada@zap.app</div></div>
+          <div class="toggle-row"><div class="t" style="color:var(--hot);">Log out</div></div>
+        </div>
+      </section>
+    </div>
+
+  </main>
+</div>
+
+<nav class="bottomnav" aria-label="Primary">
+  <button class="nav-btn" data-tab="home" aria-current="page" onclick="showTab('home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+    Home
+  </button>
+  <button class="nav-btn" data-tab="insights" onclick="showTab('insights')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
+    Insights
+  </button>
+  <button class="nav-btn" data-tab="cards" onclick="showTab('cards')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/></svg>
+    Cards
+  </button>
+  <button class="nav-btn" data-tab="profile" onclick="showTab('profile')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/></svg>
+    Profile
+  </button>
+</nav>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="sr-only" aria-live="polite" id="srAnnounce"></div>
+
+<script>
+/* ================= DATA ================= */
+const ACCOUNTS = [
+  {bank:'Kuda',    type:'Spend account', num:'•••• 4821', balance:128450, grad:'linear-gradient(135deg,#7A3BFF,#1F1636)', primary:true},
+  {bank:'Opay',    type:'Savings',       num:'•••• 2290', balance:342900, grad:'linear-gradient(135deg,#1BA672,#0B3B2A)', primary:false},
+  {bank:'FirstBank',type:'Classic',      num:'•••• 7710', balance:58120,  grad:'linear-gradient(135deg,#1E3A8A,#0B1730)', primary:false},
+  {bank:'PalmPay', type:'Wallet',        num:'•••• 3305', balance:19875,  grad:'linear-gradient(135deg,#8B2FE0,#2A0B4A)', primary:false},
+];
+const CATS = [
+  {name:'Transport',    amt:12400, hot:true},
+  {name:'Food & Drinks',amt:9800},
+  {name:'Shopping',     amt:7600},
+  {name:'Transfers',    amt:5100},
+  {name:'Subscriptions',amt:4500},
+  {name:'Data & Airtime',amt:3200},
+];
+const TX = [
+  {t:'Bolt ride', s:'Transport · Today, 11:42pm', amt:-3200, ic:'🚗', bg:'rgba(255,79,160,.15)'},
+  {t:'Round-up save', s:'Auto-save · Today', amt:186, ic:'⚡', bg:'rgba(198,255,77,.15)'},
+  {t:'Netflix', s:'Subscriptions · Yesterday', amt:-4500, ic:'🎬', bg:'rgba(194,75,255,.15)'},
+  {t:'Salary credit', s:'Income · Jul 1', amt:185000, ic:'💰', bg:'rgba(65,227,154,.15)'},
+  {t:'Chicken Republic', s:'Food & Drinks · Jul 1', amt:5600, ic:'🍗', bg:'rgba(62,241,222,.15)'},
+];
+
+let hideBalances = false;
+
+/* ================= RENDER CARDS ================= */
+function renderCarousel(){
+  const el = document.getElementById('carousel');
+  el.innerHTML = ACCOUNTS.map((a,i)=>`
+    <li class="bank-card" style="--card-grad:${a.grad}" role="group" aria-label="${a.bank} ${a.type}, card ending ${a.num.replace('•••• ','')}, balance ${money(a.balance)}${a.primary?', primary account':''}">
+      <div class="top">
+        <div>
+          <div class="bank-mark">${a.bank.slice(0,2).toUpperCase()}</div>
+          <div class="bank-name">${a.bank}</div>
+        </div>
+        ${a.primary? '<span class="primary-pill">PRIMARY</span>':''}
+      </div>
+      <div class="bank-balance mono balance-txt">${hideBalances? '••••••' : money(a.balance)}</div>
+      <div class="bank-number">${a.type} · ${a.num}</div>
+    </li>`).join('');
+  document.getElementById('carouselDots').innerHTML = ACCOUNTS.map((_,i)=>`<span class="dot-ind ${i===0?'on':''}" role="tab" aria-selected="${i===0}"></span>`).join('');
+
+  document.getElementById('cardListFull').innerHTML = ACCOUNTS.map(a=>`
+    <div class="bank-card" style="--card-grad:${a.grad};margin-bottom:14px;flex:none;min-width:0;" role="group" aria-label="${a.bank} ${a.type}, ${money(a.balance)}">
+      <div class="top">
+        <div><div class="bank-mark">${a.bank.slice(0,2).toUpperCase()}</div><div class="bank-name">${a.bank}</div></div>
+        ${a.primary? '<span class="primary-pill">PRIMARY</span>':''}
+      </div>
+      <div class="bank-balance mono balance-txt">${hideBalances? '••••••' : money(a.balance)}</div>
+      <div class="bank-number">${a.type} · ${a.num}</div>
+    </div>`).join('');
+}
+function money(v){ return '₦'+v.toLocaleString('en-NG'); }
+
+function toggleHideBalance(){
+  hideBalances = !hideBalances;
+  document.getElementById('hideBalanceBtn').setAttribute('aria-pressed', hideBalances);
+  document.getElementById('hideBalanceBtn').textContent = hideBalances? 'Show balances':'Hide balances';
+  renderCarousel();
+}
+
+function scrollCarousel(dir){
+  const el = document.getElementById('carousel');
+  const card = el.querySelector('.bank-card');
+  const w = card ? card.getBoundingClientRect().width + 14 : 260;
+  el.scrollBy({left: dir*w, behavior: document.documentElement.classList.contains('reduce-motion')? 'auto':'smooth'});
+}
+document.getElementById('carousel').addEventListener('scroll', ()=>{
+  const el = document.getElementById('carousel');
+  const idx = Math.round(el.scrollLeft / (el.querySelector('.bank-card').getBoundingClientRect().width+14));
+  document.querySelectorAll('#carouselDots .dot-ind').forEach((d,i)=>{
+    d.classList.toggle('on', i===idx);
+    d.setAttribute('aria-selected', i===idx);
+  });
+});
+
+/* ================= CHARTS ================= */
+function renderChart(rowId, tableId){
+  const max = Math.max(...CATS.map(c=>c.amt));
+  const row = document.getElementById(rowId);
+  row.innerHTML = CATS.map(c=>`
+    <div class="bar-col">
+      <span class="bar-amt">₦${(c.amt/1000).toFixed(1)}k</span>
+      <div class="bar ${c.hot?'hot':''}" style="height:${(c.amt/max*100)}%"></div>
+      <span class="bar-cat">${c.name}</span>
+    </div>`).join('');
+  const tbody = document.getElementById(tableId);
+  if(tbody){
+    tbody.innerHTML = CATS.map(c=>`<tr><th scope="row">${c.name}</th><td>${money(c.amt)}</td></tr>`).join('');
+  }
+}
+
+/* ================= ROUND-UP ================= */
+function toggleRoundup(){
+  const btn = document.getElementById('roundupSwitch');
+  const on = btn.getAttribute('aria-checked') === 'true';
+  btn.setAttribute('aria-checked', String(!on));
+  announce(!on ? 'Round-up automation turned on. We will start rounding up your purchases.' : 'Round-up automation turned off.');
+  showToast(!on ? '⚡ Round-Up is ON' : 'Round-Up paused');
+}
+let currentMultiplier = 1;
+function setMultiplier(btn, val){
+  document.querySelectorAll('.stepper button').forEach(b=>{b.classList.remove('on'); b.setAttribute('aria-pressed','false');});
+  btn.classList.add('on'); btn.setAttribute('aria-pressed','true');
+  currentMultiplier = val;
+  announce(`Round-up multiplier set to ${val}x`);
+}
+
+/* ================= TRANSACTIONS ================= */
+function renderTx(){
+  document.getElementById('txList').innerHTML = TX.map(t=>`
+    <div class="tx-row">
+      <div class="tx-ic" style="background:${t.bg};">${t.ic}</div>
+      <div class="tx-info"><div class="t">${t.t}</div><div class="s">${t.s}</div></div>
+      <div class="tx-amt ${t.amt>0?'pos':'neg'}">${t.amt>0?'+':''}${money(Math.abs(t.amt))}</div>
+    </div>`).join('');
+}
+
+/* ================= TABS ================= */
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>{
+    const on = b.dataset.tab===name;
+    if(on) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
+  });
+  document.getElementById('main-content').scrollTo?.(0,0);
+  window.scrollTo(0,0);
+}
+
+/* ================= ACCESSIBILITY CONTROLS ================= */
+function toggleClassSwitch(btn, cls){
+  const on = btn.getAttribute('aria-checked') === 'true';
+  btn.setAttribute('aria-checked', String(!on));
+  document.documentElement.classList.toggle(cls, !on);
+  announce(`${cls.replace('-',' ')} ${!on ? 'enabled' : 'disabled'}`);
+}
+function setFontSize(size, btn){
+  document.querySelectorAll('.fs-row button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.documentElement.classList.remove('fs-lg','fs-xl');
+  if(size==='lg') document.documentElement.classList.add('fs-lg');
+  if(size==='xl') document.documentElement.classList.add('fs-xl');
+}
+
+function announce(msg){ document.getElementById('srAnnounce').textContent = msg; }
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+/* ================= INIT ================= */
+renderCarousel();
+renderChart('chartRow','chartTableBody');
+renderChart('chartRow2','chartTableBody2');
+renderTx();
+</script>
+</body>
+</html>
